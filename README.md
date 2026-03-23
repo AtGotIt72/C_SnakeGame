@@ -8,3 +8,5 @@ Open the `.sln` file in Visual Studio 2022 and run the project.
 ## Files
 - `main.c`
 - `header.h`
+
+## more information view Development log
