@@ -9,4 +9,4 @@ Open the `.sln` file in Visual Studio 2022 and run the project.
 - `main.c`
 - `header.h`
 
-## more information view Development log
+more information please go to `Snake Game Development Log.md`
