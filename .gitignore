@@ -34,3 +34,5 @@ compile_commands.json
 # Windows system files
 Thumbs.db
 Desktop.ini
+/Snake.docx
+/temp.md
