@@ -7,7 +7,13 @@
 #define L 3
 #define R 4
 
+/*rank file*/
+#define RANK_FILE "rank.txt"
+#define RANK_SIZE 10
+
 int score=0, f_score=10; //score, score for each food
+int food_growth = 1; //growth of the snake after eating food
+int grow_pending = 0;//remaining growth segments
 //int end;//ending cases ()
 int time_use;//time usage
 int sleeptime;
@@ -18,6 +24,7 @@ int gameover = 0;//judge if lose the game
 typedef struct snakeNode {
 	int x;
 	int y;
+	int type;//0 for common food, 1 for special food, 2 for super food.
 	struct snakeNode* next;
 }snake;
 
@@ -41,12 +48,19 @@ void createFood();
 void biteSelf(); //judge if bite self
 void hitWall(); //judge if hit wall
 
+char getFoodType(); //get food type
+int getFoodColor(); //get food color
+void applyFoodEffect(); //apply food effect
+
 void speedUp(); //press F1 to speed up
 void speedDown();//press F2 to speed down
 void moveDir(); //direction of movement
 void keyControl(); //keyboard control
 void startTimer();//start timer when the game starts
 int getTime(); //get time during the game
+
+void saveScore(int newScore); //save score to rank file
+void showRank(); //show rank list
 
 void lostGame(); //lost game ui
 //void endGame(); //end game reasons (an opt)

@@ -42,6 +42,8 @@ void startGame()
 	gameover = 0;
 	score = 0;
 	f_score = 10;
+	food_growth = 1;
+	grow_pending = 0;
 	sleeptime = 100;
 	move = R;
 	createMap();
@@ -87,14 +89,17 @@ void welcome2game()
 		printf("Snake Game");
 
 		color(12);
-		gotoxy(25, 12);
+		gotoxy(20, 12);
 		printf("1.Start Game");
 
-		gotoxy(45, 12);
+		gotoxy(40, 12);
 		printf("2.Instructions");
 
-		gotoxy(65, 12);
-		printf("3.Quit Game");
+		gotoxy(60, 12);
+		printf("3.Rank List");
+
+		gotoxy(80, 12);
+		printf("4.Quit Game");
 
 		gotoxy(65, 20);
 		color(15);
@@ -115,13 +120,16 @@ void welcome2game()
 			xpl();
 			break;
 		case 3:
+			showRank();
+			break;
+		case 4:
 			system("cls");
 			exit(0);
 			break;
 		default:
 			gotoxy(40, 28);
 			color(12);
-			printf("please input a number between 1-3");
+			printf("please input a number between 1-4");
 			_getch();//press any key
 			system("cls");
 			welcome2game();
@@ -171,17 +179,19 @@ void scoreAndTips()
 	printf("Score:%d",score);
 	gotoxy(65,4);
 	printf("Score for each food:%d",f_score);
+	gotoxy(65,6);
+	printf("Growth for each food:%d",food_growth);
 	
-	gotoxy(65,8);
-	printf("Use arrows to move");
 	gotoxy(65,10);
-	printf("F1:Speed Up");
+	printf("Use arrows to move");
 	gotoxy(65,12);
+	printf("F1:Speed Up");
+	gotoxy(65,14);
 	printf("F2:Speed Down");
 	
-	gotoxy(65,16);
-	printf("Press space to pause");
 	gotoxy(65,18);
+	printf("Press space to pause");
+	gotoxy(65,20);
 	printf("Press ESC to quit");
 
 	int seconds = getTime();
@@ -201,6 +211,7 @@ void initSnake()
 	snake* tail = (snake*)malloc(sizeof(snake));
 	tail->x = 24;
 	tail->y = 5;//initial position of the snake
+	tail->type = -1;
 	tail->next = NULL;
 	int i;
 
@@ -210,6 +221,7 @@ void initSnake()
 		head->next = tail;
 		head->x = 24 + 2 * i;
 		head->y = tail->y;
+		head->type = -1;
 		tail = head;
 
 		p = tail;
@@ -227,6 +239,42 @@ void initSnake()
 			}
 			p = p->next;
 		}
+	}
+}
+
+/*get food type*/
+char getFoodType(int type)
+{
+	if (type == 0) return '$';
+	if (type == 1) return '&';
+	return '*';
+}
+
+/*get food color*/
+int getFoodColor(int type)
+{
+	if (type == 0) return 12;
+	if (type == 1) return 11;
+	return 14;
+}
+
+/*apply food effect*/
+void applyFoodEffect(int type)
+{
+	if (type == 0)
+	{
+		f_score = 10;
+		food_growth = 1;
+	}
+	else if (type == 1)
+	{
+		f_score = 20;
+		food_growth = 2;
+	}
+	else
+	{
+		f_score = 30;
+		food_growth = 3;
 	}
 }
 
@@ -260,9 +308,10 @@ void createFood()
 		}
 		if (tmp == NULL)
 		{
+			applyFoodEffect(food->type = rand() % 3);
 			gotoxy(food->x, food->y);
-			color(12);
-			printf("$");
+			color(getFoodColor(food->type));
+			printf("%c", getFoodType(food->type));
 			break;
 		}
 		else
@@ -317,6 +366,7 @@ void speedDown()
 	{
 		sleeptime += 10;
 		f_score = f_score - 2;
+
 	}
 }
 
@@ -376,6 +426,7 @@ void moveDir()
 		}
 
 		score += f_score;
+		grow_pending += food_growth;
 		createFood();
 	}
 
@@ -395,10 +446,22 @@ void moveDir()
 			}
 			p = p->next;
 		}
-		gotoxy(p->next->x,p->next->y);
-		printf("  ");//clear old tail
-		free(p->next);
-		p->next = NULL;
+		if (grow_pending > 0)
+		{
+			grow_pending--;
+		}
+		else
+		{
+			p = head;
+			while (p->next->next != NULL)
+			{
+				p = p->next;
+			}
+			gotoxy(p->next->x, p->next->y);
+			printf("  ");//clear old tail
+			free(p->next);
+			p->next = NULL;
+		}
 	}
 }
 
@@ -479,6 +542,7 @@ void lostGame()
 
 	gotoxy(40,14);
 	printf("score:%d", score);
+	saveScore(score);
 
 	gotoxy(40,18);
 	color(15);
@@ -494,7 +558,6 @@ void lostGame()
 void xpl() 
 {
 	system("cls");
-	int i, j = 1;
 
 	gotoxy(30, 8);
 	color(12);
@@ -503,7 +566,7 @@ void xpl()
 	color(15);
 	printf("1. Use the arrow keys to control the snake's movement.");
 	gotoxy(30, 14);
-	printf("2. Eat the food to grow longer and earn points.");
+	printf("2. Eat different food to grow different lengths.");
 	gotoxy(30, 16);
 	printf("3. Avoid colliding with the walls or biting yourself.");
 	gotoxy(30, 18);
@@ -515,6 +578,90 @@ void xpl()
 	_getch();
 	system("cls");
 	//welcome2game();
+}
+
+/*save current score*/
+void saveScore(int newScore)
+{
+	int rank[RANK_SIZE + 1] = {0};
+	int i, j, count = 0;
+	FILE* fp = NULL;
+	fopen_s(&fp,RANK_FILE,"r");
+	if (fp != NULL)
+	{
+		while (count < RANK_SIZE && fscanf_s(fp, "%d", &rank[count]) == 1)
+		{
+			count++;
+		}
+		fclose(fp);
+	}
+
+	rank[count++] = newScore;
+	for (i = 0; i < count - 1; i++)//sorting scores
+	{
+		for (j = i + 1; j < count; j++)
+		{
+			if (rank[j] > rank[i])
+			{
+				int temp = rank[i];
+				rank[i] = rank[j];
+				rank[j] = temp;
+			}
+		}
+	}
+
+	if (count > RANK_SIZE)
+	{
+		count = RANK_SIZE;
+	}
+
+	fopen_s(&fp,RANK_FILE, "w");
+	if (fp != NULL)
+	{
+		for (i = 0; i < count; i++)
+		{
+			fprintf(fp,"%d\n",rank[i]);
+		}
+		fclose(fp);
+	}
+	
+}
+
+/*show rank*/
+void showRank()
+{
+	FILE* fp = NULL;
+	fopen_s(&fp,RANK_FILE,"r+");
+	int s, i = 1;
+
+	system("cls");
+	gotoxy(42,6);
+	color(11);
+	printf("Rank List");
+
+	if (fp == NULL)
+	{
+		gotoxy(35,12);
+		color(12);
+		printf("No ranking data yet.");
+	}
+	else
+	{
+		while (fscanf_s(fp, "%d", &s) == 1)
+		{
+			gotoxy(35, 8 + i * 2);
+			color(14);
+			printf("No.%d    %d",i,s);
+			i++;
+		}
+		fclose(fp);
+	}
+
+	gotoxy(28,32);
+	color(15);
+	printf("Press any key to return");
+	_getch();
+	system("cls");
 }
 
 int main()
