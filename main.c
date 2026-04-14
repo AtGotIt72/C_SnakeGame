@@ -49,6 +49,7 @@ void startGame()
 	createMap();
 	initSnake();
 	createFood();
+	createObstacle();
 	keyControl();
 }
 
@@ -322,6 +323,58 @@ void createFood()
 
 }
 
+/*create obstacle*/
+void createObstacle()
+{
+	obstacle = malloc(sizeof(snake));
+	snake* tmp1 = NULL;
+	int conflect = 0;//judge if conflect with snake or food
+
+	while (1)
+	{
+		obstacle->x = (rand() % 27 + 1) * 2;
+		if (obstacle->x % 2 == 0)
+		{
+			break;
+		}
+	}
+	obstacle->y = rand() % 23 + 1;
+
+	tmp1 = head;
+	while (tmp1 != NULL)
+	{
+		if ((obstacle->x == tmp1->x) && (obstacle->y == tmp1->y))
+		{
+			conflect = 1;
+			break;
+		}
+		tmp1 = tmp1->next;
+	}
+	if ((obstacle->x == food->x) && (obstacle->y == food->y))
+	{
+		conflect = 1;
+	}
+	if (conflect == 0)
+	{
+		color(8);
+		gotoxy(obstacle->x, obstacle->y);
+		printf("X");
+	}
+	else
+	{
+		createObstacle();
+	}
+}
+
+/*update obstacle*/
+void updateObstacle()
+{
+	gotoxy(obstacle->x, obstacle->y);
+	printf("  ");//clear old obstacle
+	createObstacle();
+}
+
+
 /*judge whether bite snake itself*/
 void biteSelf()
 {
@@ -330,8 +383,20 @@ void biteSelf()
 	{
 		if ((head->x == self->x) && (head->y == self->y))
 		{
-			gameover = 1;
-			lostGame();
+			snake* temp = self->next;
+			self->next = NULL;
+			while (temp!=NULL)
+			{
+				gotoxy(temp->x, temp->y);
+				printf("  ");
+				snake* toFree = temp;
+				temp = temp->next;
+				free(toFree);
+				if (score > 0)
+				{
+					score -= 10;
+				}
+			}
 		}
 		self = self->next;
 	}
@@ -347,6 +412,16 @@ void hitWall()
 		lostGame();
 	}
 
+}
+
+/*judge whether hit obstacle*/
+void hitObstacle()
+{
+	if (head->x == obstacle->x && head->y == obstacle->y)
+	{
+		gameover = 1;
+		lostGame();
+	}
 }
 
 /*speed up*/
@@ -401,6 +476,7 @@ void moveDir()
 
 	hitWall();
 	biteSelf();
+	hitObstacle();
 
 	if (gameover)
 	{
@@ -468,6 +544,7 @@ void moveDir()
 /*keyboard control*/
 void keyControl()
 {
+	int updateObstacleTimer = 0; //counter for updating obstacle position
 	while (!gameover)
 	{
 		if ((GetAsyncKeyState(VK_UP)&0x8000)&&move!=D)
@@ -524,6 +601,12 @@ void keyControl()
 		{
 			scoreAndTips();
 		}
+		updateObstacleTimer++;
+		if (updateObstacleTimer >= 50) //update obstacle position every 50 iterations
+		{
+			updateObstacle();
+			updateObstacleTimer = 0;
+		}
 	}
 }
 
@@ -568,13 +651,15 @@ void xpl()
 	gotoxy(30, 14);
 	printf("2. Eat different food to grow different lengths.");
 	gotoxy(30, 16);
-	printf("3. Avoid colliding with the walls or biting yourself.");
+	printf("3. Hitting Walls and obstacles will end the game.");
 	gotoxy(30, 18);
-	printf("4. Press F1 to speed up the snake, and F2 to slow it down.");
+	printf("4. Biting youself will cut the tail");
 	gotoxy(30, 20);
-	printf("5. Press space to pause the game, and ESC to quit.");
+	printf("5. Press F1 to speed up the snake, and F2 to slow it down.");
 	gotoxy(30, 22);
-	printf("6. Press any key to go back");
+	printf("6. Press space to pause the game, and ESC to quit.");
+	gotoxy(30, 24);
+	printf("7. Press any key to go back");
 	_getch();
 	system("cls");
 	//welcome2game();
